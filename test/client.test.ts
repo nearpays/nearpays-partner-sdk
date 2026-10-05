@@ -194,9 +194,26 @@ describe('bills', () => {
     });
     assert.equal(payment.status, 'PENDING');
     const validate = transport.calls.find((c) => c.url.endsWith('/bills/validate'));
-    assert.deepEqual(validate?.body, { channel: 'AIRTIME', categoryId: 'cat-mtn', customerId: '+2348030000000', amount: 100 });
+    // Validation takes no amount; Nearpays rejects one. It goes with the purchase.
+    assert.deepEqual(validate?.body, { channel: 'AIRTIME', categoryId: 'cat-mtn', customerId: '+2348030000000' });
     const purchase = transport.calls.at(-1);
     assert.deepEqual(purchase?.body, { validationReference: 'VAL-1', reference: 'topup_1', amount: 100 });
     assert.match(purchase?.headers['idempotency-key'] ?? '', /^sdk_/);
+  });
+});
+
+describe('test webhooks', () => {
+  it('asks Nearpays to send a sample event for the customer', async () => {
+    const { nearpays, transport } = await connected();
+    transport.respond = () => ({
+      status: 202,
+      body: { data: { deliveryId: 'd1', type: 'charge.completed', webhookUrl: 'https://partner.test/hooks' } },
+    });
+    const sent = await nearpays.sendTestWebhook('user_42', 'charge.completed');
+    assert.equal(sent.deliveryId, 'd1');
+    const call = transport.calls.at(-1);
+    assert.equal(call?.method, 'POST');
+    assert.match(call?.url ?? '', /\/open\/webhooks\/test$/);
+    assert.deepEqual(call?.body, { type: 'charge.completed' });
   });
 });

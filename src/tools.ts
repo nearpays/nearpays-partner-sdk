@@ -147,7 +147,6 @@ export function createAgentTools(nearpays: Nearpays, options: AgentToolsOptions)
           productId: { type: 'string', description: 'From list_bill_products, when required' },
           customerId: { type: 'string', description: 'Phone number, meter number or smartcard number' },
           meterType: { type: 'string', enum: ['PREPAID', 'POSTPAID'] },
-          amount: { type: 'number', description: 'Naira, for airtime and electricity' },
         },
         required: ['channel', 'categoryId', 'customerId'],
         additionalProperties: false,
@@ -159,7 +158,6 @@ export function createAgentTools(nearpays: Nearpays, options: AgentToolsOptions)
           productId: input.productId ? String(input.productId) : undefined,
           customerId: String(input.customerId),
           meterType: input.meterType as 'PREPAID' | 'POSTPAID' | undefined,
-          amount: input.amount === undefined ? undefined : Number(input.amount),
         }),
     },
     {

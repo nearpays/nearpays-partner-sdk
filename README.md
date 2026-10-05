@@ -14,15 +14,20 @@ npm install @nearpays/partner
 
 Requires Node.js 20 or later.
 
+The full partner guide, the OpenAPI file and an `llms.txt` for coding
+assistants are at [`/partners`](https://p01--au-api--kwy26k2wm4fb.code.run/partners)
+on the API.
+
 ## How it works
 
 1. Your customer clicks **Connect Nearpays** on your site.
-2. They approve in the **Nearpays app** with their transaction PIN, including
-   the limits you asked for (for example, up to ₦5,000 a payment). They can
-   lower those limits, but not raise them.
+2. On a Nearpays page they sign in, confirm with a code, review what you
+   asked for (for example, up to ₦5,000 a payment) and approve with their
+   transaction PIN. They approve everything you asked for, or nothing: they
+   can't untick a permission or change a limit, so ask for what you need.
 3. From then on you can charge them, or pay their bills, within those limits,
-   without asking again. They can pause or disconnect you at any time in the
-   app, and you'll get a webhook when they do.
+   without asking again. They can pause or disconnect you at any time in
+   Nearpays, and you'll get a webhook when they do.
 
 Every charge lands in your own Nearpays business account.
 
@@ -124,7 +129,8 @@ const { validation, payment } = await nearpays.bills.buy(user.id, {
 
 For more control, use the steps separately: `bills.channels()`,
 `bills.categories()`, `bills.products()` (data bundles), `bills.validate()`,
-then `bills.pay()`.
+then `bills.pay()`. Validation checks the number only; the amount goes with
+`bills.pay()`.
 
 ### 7. Receive webhooks
 
@@ -152,6 +158,27 @@ forgets their connection before your `grant.revoked` handler runs.
 
 Not on Express? Use `nearpays.webhooks.handle(rawBody, headers, handlers)`.
 
+To check your endpoint without moving money, ask Nearpays for a sample event,
+signed like a real one, for a connected customer:
+
+```js
+await nearpays.sendTestWebhook(user.id, 'charge.completed');
+```
+
+Samples have `test: true` and ids starting `test_`. A test `grant.revoked`
+leaves the real connection alone.
+
+### Test on staging
+
+Airtime and data for these numbers skip the real provider on staging, so you
+can see every outcome. The wallet debit, limits and webhooks are real.
+
+| Number | Outcome |
+|---|---|
+| `08000000001` | `COMPLETED` at once |
+| `08000000002` | `PENDING`, then `COMPLETED` about 15 seconds later, with `bill.completed` |
+| `08000000003` | The purchase fails and the customer is refunded, with `bill.refunded` |
+
 ### Try it
 
 [`examples/starter/server.mjs`](examples/starter/server.mjs) is all of the
@@ -168,8 +195,11 @@ Every failure is a `NearpaysError` with a stable `code`:
 | `mandate_unavailable` | No permission of this kind, or it's paused | Ask the customer to resume it in the Nearpays app, or reconnect |
 | `insufficient_scope` | The customer didn't approve this kind of access | Reconnect asking for it |
 | `account_unavailable` | Their account is suspended | Don't retry |
-| `conflict` | The same reference was used for a different request, or the first is still running | Use a new reference for a new payment; wait and retry for the same one |
+| `idempotency_key_reused` | The same reference was used for a different request | Use a new reference for a new payment |
+| `request_in_progress` | The first request with this reference is still running | Wait and retry |
+| `rate_limited` | Too many requests | Back off and retry |
 | `invalid_request`, `bad_request` | Something in your request | Fix it; `error.message` says what |
+| `invalid_webhook` (`WebhookVerificationError`) | A webhook's signature or timestamp is wrong | Ignore the request |
 
 ```js
 try {
@@ -183,26 +213,60 @@ try {
 
 ## Storing connections
 
-The SDK stores each customer's tokens and DPoP key through a `Store` you
-provide. Its contents are secrets: encrypt at rest, never log them.
+The SDK keeps each customer's tokens and DPoP key in a `Store`. Its contents
+are secrets. Three stores come with the SDK; wrap any of them in
+`encryptStore` so a leaked database or Redis dump holds no usable tokens.
+
+**Redis** (`ioredis` or `redis`):
+
+```js
+import Redis from 'ioredis';
+import { RedisStore, encryptStore } from '@nearpays/partner';
+
+const store = encryptStore(
+  new RedisStore(new Redis(process.env.REDIS_URL)),
+  process.env.NEARPAYS_STORE_KEY, // openssl rand -base64 32
+);
+```
+
+Turn on Redis persistence (AOF): losing the data disconnects every customer.
+
+**Postgres** (`pg`):
+
+```js
+import pg from 'pg';
+import { PostgresStore, encryptStore } from '@nearpays/partner';
+
+const postgres = new PostgresStore(new pg.Pool({ connectionString: process.env.DATABASE_URL }));
+await postgres.createTable(); // once, or in a migration
+const store = encryptStore(postgres, process.env.NEARPAYS_STORE_KEY);
+// now and then: await postgres.prune();
+```
+
+**Anything else:** implement `get`, `set(key, value, ttlSeconds?)`,
+`delete` and, with more than one instance, `lock(key, fn)`:
 
 ```js
 const store = {
-  get: (key) => redis.get(key),
-  set: (key, value, ttlSeconds) =>
-    ttlSeconds ? redis.set(key, value, 'EX', ttlSeconds) : redis.set(key, value),
-  delete: (key) => redis.del(key),
-  // Needed when you run more than one server instance:
-  lock: (key, fn) => redlock.using([key], 10_000, fn),
+  get: (key) => db.get(key), // null or undefined when missing or expired
+  set: (key, value, ttlSeconds) => db.put(key, value, ttlSeconds),
+  delete: (key) => db.remove(key),
+  lock: (key, fn) => db.withLock(key, fn),
 };
 ```
 
-**Running more than one instance? Implement `lock`.** A refresh token works
-exactly once, and Nearpays treats a second use as theft and disconnects the
-customer. The SDK never refreshes twice at once within one process. `lock`
-makes that hold across your instances.
+**Running more than one instance? Use a store with `lock`.** A refresh token
+works exactly once, and Nearpays treats a second use as theft and disconnects
+the customer. The SDK never refreshes twice at once within one process;
+`lock` makes that hold across your instances. `RedisStore` and
+`PostgresStore` have one.
 
-`MemoryStore` is for tests only: a restart forgets every customer.
+**Rotating the encryption key:** pass the new key, and the old one as
+`encryptStore(store, newKey, { previousKeys: [oldKey] })`. Values are
+re-encrypted as they're next written.
+
+`MemoryStore`, the default, is for tests only: a restart forgets every
+customer.
 
 ## AI agents
 

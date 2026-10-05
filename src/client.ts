@@ -24,7 +24,9 @@ import type {
   MandateRequest,
   BillsMandateRequest,
   PayBillRequest,
+  TestWebhook,
   ValidateBillRequest,
+  WebhookEventType,
 } from './types.ts';
 import { Webhooks } from './webhooks.ts';
 import { type AgentTool, type AgentToolsOptions, createAgentTools } from './tools.ts';
@@ -201,7 +203,6 @@ export class Nearpays {
               customerId: request.customerId,
               ...(request.productId ? { subCategoryId: request.productId } : {}),
               ...(request.meterType ? { electricityMeterType: request.meterType } : {}),
-              ...(request.amount !== undefined ? { amount: request.amount } : {}),
             },
           })
         ).data,
@@ -247,7 +248,6 @@ export class Nearpays {
           productId,
           customerId: request.customerId,
           meterType: request.meterType,
-          amount: request.amount,
         });
         const payment = await this.bills.pay(customer, {
           validationReference: validation.reference,
@@ -264,8 +264,8 @@ export class Nearpays {
   }
 
   /**
-   * Starts connecting a customer. Send their browser to `url`. They approve in
-   * the Nearpays app, and come back to your redirect URI; call `finish()` there.
+   * Starts connecting a customer. Send their browser to `url`. They approve on
+   * a Nearpays page and come back to your redirect URI; call `finish()` there.
    */
   async connect(options: ConnectOptions): Promise<{ url: string; state: string }> {
     if (!options.customer) {
@@ -380,6 +380,15 @@ export class Nearpays {
   /** The customer's wallet balances. Needs `balance: true` at connect. */
   async balance(customer: string): Promise<Balance[]> {
     return (await this.request<Balance[]>(customer, 'GET', '/balance')).data;
+  }
+
+  /**
+   * Asks Nearpays to send your webhook URL a sample event for this customer,
+   * signed like a real one. The sample has `test: true` and ids starting
+   * `test_`; a test `grant.revoked` never forgets a real connection.
+   */
+  async sendTestWebhook(customer: string, type: WebhookEventType): Promise<TestWebhook> {
+    return (await this.request<TestWebhook>(customer, 'POST', '/webhooks/test', { body: { type } })).data;
   }
 
   /** Ends the connection at Nearpays and forgets it here. */

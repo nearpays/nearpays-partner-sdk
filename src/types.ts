@@ -129,7 +129,6 @@ export interface ValidateBillRequest {
   /** Phone number, meter number or smartcard number. */
   customerId: string;
   meterType?: 'PREPAID' | 'POSTPAID';
-  amount?: number;
 }
 
 export interface PayBillRequest {
@@ -171,12 +170,20 @@ export type WebhookEventType =
   | 'grant.revoked'
   | 'mandate.paused'
   | 'mandate.resumed'
-  | 'mandate.updated'
   | 'charge.completed'
   | 'charge.failed'
   | 'bill.completed'
   | 'bill.failed'
   | 'bill.refunded';
+
+/** What `sendTestWebhook` queued. */
+export interface TestWebhook {
+  /** Matches the `X-Nearpays-Delivery` header on the request you receive. */
+  deliveryId: string;
+  type: WebhookEventType;
+  /** Where it is being sent. */
+  webhookUrl: string;
+}
 
 export interface WebhookEvent {
   id: string;

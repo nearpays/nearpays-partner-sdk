@@ -6,6 +6,16 @@ export {
   type Headroom,
 } from './errors.ts';
 export { MemoryStore, type Store } from './store.ts';
+export {
+  RedisStore,
+  PostgresStore,
+  encryptStore,
+  type RedisClient,
+  type RedisStoreOptions,
+  type PostgresPool,
+  type PostgresStoreOptions,
+  type EncryptStoreOptions,
+} from './stores.ts';
 export { generateClientKeys, importClientKey, type ClientKeyInput } from './keys.ts';
 export { Webhooks } from './webhooks.ts';
 export {
