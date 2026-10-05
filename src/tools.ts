@@ -145,7 +145,7 @@ export function createAgentTools(nearpays: Nearpays, options: AgentToolsOptions)
           channel: { type: 'string', enum: CHANNELS },
           categoryId: { type: 'string', description: 'From list_bill_categories' },
           productId: { type: 'string', description: 'From list_bill_products, when required' },
-          customerId: { type: 'string', description: 'Phone number, meter number or smartcard number' },
+          customerId: { type: 'string', description: 'Phone number in +234 form (e.g. +2348031234567), meter number or smartcard number' },
           meterType: { type: 'string', enum: ['PREPAID', 'POSTPAID'] },
         },
         required: ['channel', 'categoryId', 'customerId'],

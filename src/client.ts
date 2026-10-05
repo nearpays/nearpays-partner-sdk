@@ -44,6 +44,12 @@ export interface NearpaysOptions {
   store?: Store;
   /** The webhook signing secret Nearpays gave you. Needed for `webhooks`. */
   webhookSecret?: string;
+  /**
+   * How long to wait for Nearpays, in seconds. Defaults to 60. When a payment
+   * times out (`timeout`), it may still go through: retry with the same
+   * reference to get its result.
+   */
+  timeoutSeconds?: number;
   /** Allow plain http, for a local Nearpays. Never in production. */
   allowInsecureHttp?: boolean;
   /** For tests. */
@@ -146,6 +152,7 @@ export class Nearpays {
         clientId: options.clientId,
         clientKey: importClientKey(options.privateKey),
         allowInsecureHttp: insecure,
+        timeoutSeconds: options.timeoutSeconds ?? 60,
       });
     this.webhooks = new Webhooks({
       secret: options.webhookSecret,

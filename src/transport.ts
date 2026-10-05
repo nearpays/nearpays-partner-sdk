@@ -54,17 +54,20 @@ export class OpenIdTransport implements Transport {
   readonly #clientId: string;
   readonly #clientKey: Promise<ClientKey>;
   readonly #insecure: boolean;
+  readonly #timeoutSeconds: number;
 
   constructor(options: {
     issuer: URL;
     clientId: string;
     clientKey: Promise<ClientKey>;
     allowInsecureHttp: boolean;
+    timeoutSeconds: number;
   }) {
     this.#issuer = options.issuer;
     this.#clientId = options.clientId;
     this.#clientKey = options.clientKey;
     this.#insecure = options.allowInsecureHttp;
+    this.#timeoutSeconds = options.timeoutSeconds;
   }
 
   #configuration(): Promise<oidc.Configuration> {
@@ -75,7 +78,10 @@ export class OpenIdTransport implements Transport {
         this.#clientId,
         undefined,
         oidc.PrivateKeyJwt({ key, kid }),
-        this.#insecure ? { execute: [oidc.allowInsecureRequests] } : undefined,
+        {
+          timeout: this.#timeoutSeconds,
+          ...(this.#insecure ? { execute: [oidc.allowInsecureRequests] } : {}),
+        },
       );
     })().catch((error) => {
       this.#config = undefined; // try discovery again next time
@@ -213,6 +219,13 @@ function wrap(error: unknown, fallback: string): NearpaysError {
     return new NearpaysError(error.error, error.error_description ?? error.message, {
       cause: error,
     });
+  }
+  if ((error as { code?: unknown })?.code === 'OAUTH_TIMEOUT') {
+    return new NearpaysError(
+      'timeout',
+      'Nearpays did not answer in time. A payment may still go through: retry with the same reference to get its result.',
+      { cause: error },
+    );
   }
   const message = error instanceof Error ? error.message : String(error);
   return new NearpaysError(fallback, message, { cause: error });

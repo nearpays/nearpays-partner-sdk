@@ -126,7 +126,7 @@ export interface ValidateBillRequest {
   categoryId: string;
   /** A data bundle or similar product, when the channel has them. */
   productId?: string;
-  /** Phone number, meter number or smartcard number. */
+  /** Phone number in +234 form (e.g. `+2348031234567`), meter number or smartcard number. */
   customerId: string;
   meterType?: 'PREPAID' | 'POSTPAID';
 }
@@ -146,6 +146,7 @@ export interface BuyBillRequest {
   category: string;
   /** A product id or name, for channels that need one (data bundles). */
   product?: string;
+  /** Phone number in +234 form (e.g. `+2348031234567`), meter number or smartcard number. */
   customerId: string;
   meterType?: 'PREPAID' | 'POSTPAID';
   amount?: number;

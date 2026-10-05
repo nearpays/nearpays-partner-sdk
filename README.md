@@ -120,7 +120,7 @@ the first result (`charge.replayed === true`) and never charges twice.
 const { validation, payment } = await nearpays.bills.buy(user.id, {
   channel: 'AIRTIME', // or DATA, ELECTRICITY
   category: 'MTN', // a provider's name or id
-  customerId: '08030000000', // phone, meter or smartcard number
+  customerId: '+2348031234567', // phone (+234 form), meter or smartcard number
   amount: 500,
   reference: topup.id,
 });
@@ -170,14 +170,14 @@ leaves the real connection alone.
 
 ### Test on staging
 
-Airtime and data for these numbers skip the real provider on staging, so you
-can see every outcome. The wallet debit, limits and webhooks are real.
+Airtime and data for these numbers skip the real provider on staging, with
+any network, so you can see every outcome. The wallet debit, limits and webhooks are real.
 
 | Number | Outcome |
 |---|---|
-| `08000000001` | `COMPLETED` at once |
-| `08000000002` | `PENDING`, then `COMPLETED` about 15 seconds later, with `bill.completed` |
-| `08000000003` | The purchase fails and the customer is refunded, with `bill.refunded` |
+| `+2348000000001` | `COMPLETED` at once |
+| `+2348000000002` | `PENDING`, then `COMPLETED` about 15 seconds later, with `bill.completed` |
+| `+2348000000003` | The purchase fails and the customer is refunded, with `bill.refunded` |
 
 ### Try it
 
@@ -197,6 +197,7 @@ Every failure is a `NearpaysError` with a stable `code`:
 | `account_unavailable` | Their account is suspended | Don't retry |
 | `idempotency_key_reused` | The same reference was used for a different request | Use a new reference for a new payment |
 | `request_in_progress` | The first request with this reference is still running | Wait and retry |
+| `timeout` | Nearpays didn't answer in time (`timeoutSeconds`, 60 by default) | A payment may still go through: retry with the same reference to get its result, or wait for the webhook. Don't mark it failed. |
 | `rate_limited` | Too many requests | Back off and retry |
 | `invalid_request`, `bad_request` | Something in your request | Fix it; `error.message` says what |
 | `invalid_webhook` (`WebhookVerificationError`) | A webhook's signature or timestamp is wrong | Ignore the request |
