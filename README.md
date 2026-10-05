@@ -8,6 +8,10 @@ signed client authentication (`private_key_jwt`), DPoP-bound tokens, token
 refresh, idempotent retries and webhook signatures. You write the parts that
 are about your product.
 
+```bash
+npm install @nearpays/partner
+```
+
 Requires Node.js 20 or later.
 
 ## How it works
