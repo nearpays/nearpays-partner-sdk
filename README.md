@@ -46,11 +46,19 @@ You'll get back a `client_id` (`npc_…`) and a webhook signing secret.
 
 ### 3. Set up the client
 
+| Environment | `baseUrl` |
+|---|---|
+| Staging (test money; build and test here) | `https://p01--au-api--kwy26k2wm4fb.code.run/api/v2` |
+| Production | `https://api.nearpays.com:8443/api/v2` |
+
+Keep `baseUrl` in your configuration, not in code, so you can switch
+environments without a deploy.
+
 ```js
 import { Nearpays } from '@nearpays/partner';
 
 export const nearpays = new Nearpays({
-  baseUrl: 'https://<nearpays-api>/api/v2',
+  baseUrl: process.env.NEARPAYS_BASE_URL, // see the table above
   clientId: process.env.NEARPAYS_CLIENT_ID,
   privateKey: JSON.parse(process.env.NEARPAYS_PRIVATE_KEY), // the keygen file's contents
   redirectUri: 'https://yourapp.com/nearpays/callback',
