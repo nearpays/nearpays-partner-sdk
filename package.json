@@ -1,0 +1,36 @@
+{
+  "name": "@nearpays/partner",
+  "version": "0.1.0",
+  "description": "Connect to Nearpays customers, charge them and pay their bills, from a partner's Node.js server or AI agent.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "nearpays-partner": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "openid-client": "^6.8.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.11",
+    "typescript": "^5.8.2"
+  }
+}
