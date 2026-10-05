@@ -15,9 +15,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nearpays/nearpays-api-v2.git",
-    "directory": "packages/partner-sdk"
+    "url": "git+https://github.com/nearpays/nearpays-partner-sdk.git"
   },
+  "homepage": "https://github.com/nearpays/nearpays-partner-sdk#readme",
+  "bugs": "https://github.com/nearpays/nearpays-partner-sdk/issues",
   "type": "module",
   "exports": {
     ".": {

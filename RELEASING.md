@@ -1,7 +1,7 @@
 # Releasing @nearpays/partner
 
-Releases publish from GitHub Actions (`.github/workflows/partner-sdk.yml`)
-when a `partner-sdk-vX.Y.Z` tag is pushed. No npm token is stored anywhere:
+Releases publish from GitHub Actions (`.github/workflows/ci.yml`) when a
+`vX.Y.Z` tag is pushed. No npm token is stored anywhere:
 npm trusts this repository's workflow directly (trusted publishing), and each
 version carries provenance linking it to the commit it was built from.
 
@@ -13,7 +13,6 @@ version carries provenance linking it to the commit it was built from.
    to a package that already exists:
 
    ```bash
-   cd packages/partner-sdk
    npm ci
    npm login
    npm publish --provenance=false
@@ -22,8 +21,8 @@ version carries provenance linking it to the commit it was built from.
    (Provenance needs CI, so it's off for this one manual publish. Every
    version after it is published by the workflow, with provenance.)
 3. On npmjs.com, open the package → Settings → Trusted publishing, and add:
-   GitHub Actions · organisation `nearpays` · repository `nearpays-api-v2` ·
-   workflow `partner-sdk.yml` · environment `npm`.
+   GitHub Actions · organisation `nearpays` · repository `nearpays-partner-sdk` ·
+   workflow `ci.yml` · environment `npm`.
 4. In GitHub → Settings → Environments, create an environment named `npm`.
    Add required reviewers if you want a person to approve each publish.
 5. Optional, recommended: on npmjs.com, set the package to require trusted
@@ -35,12 +34,12 @@ Pick the version: `patch` for fixes, `minor` for new features, and while the
 version is below 1.0.0, `minor` also for anything that breaks existing code.
 
 ```bash
-cd packages/partner-sdk
-npm version patch --no-git-tag-version
-git commit -am "Release @nearpays/partner $(node -p "require('./package.json').version")"
-git tag "partner-sdk-v$(node -p "require('./package.json').version")"
-git push origin HEAD --tags
+npm version patch
+git push --follow-tags
 ```
+
+`npm version` updates `package.json` and `package-lock.json`, commits, and
+tags `vX.Y.Z`.
 
 The workflow tests, checks the tag matches `package.json`, builds and
 publishes. If the tag and version disagree, it stops without publishing.
